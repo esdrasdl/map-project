@@ -24,6 +24,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import de.greenrobot.event.EventBus;
+import timber.log.Timber;
 
 public class MapActivity extends AppCompatActivity {
 
@@ -46,18 +47,19 @@ public class MapActivity extends AppCompatActivity {
         setupViews();
         setupControllers();
         recoveryLastState(savedInstanceState);
-
+        mMap.setOnCameraChangeListener(mMapController.setCameraChangeListener());
 
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
 
         EventBus.getDefault().register(this);
     }
 
     private void recoveryLastState(Bundle savedInstanceState) {
         if (savedInstanceState != null) {
+            mMapController.setIsMoveCameraAllow(false);
             double lat = savedInstanceState.getDouble(MapController.LATITUDE);
             double lon = savedInstanceState.getDouble(MapController.LONGITUDE);
+            Timber.d("recoveryLastState onSaveInstanceState " + lat + "," + lon);
             mCity = savedInstanceState.getString("CITY", "");
             mStreet = savedInstanceState.getString("STREET", "");
             mAddressTextView.setText(mStreet);
@@ -71,14 +73,19 @@ public class MapActivity extends AppCompatActivity {
     }
 
 
+    private void moveCameraIfEnabled(Location location) {
+        if (mMapController.isMoveCameraAllow()) {
+            mMapController.moveCamera(location);
+            mMapController.requestAddressLocation(location);
+        }
+    }
+
     private void setupLocaleByNetwork() {
         Location location = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
         if (location != null) {
-            mMapController.moveCamera(location);
-            mMapController.requestAddressLocation(location);
+            moveCameraIfEnabled(location);
         }
-
         mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 10, mMapController.getLocationListener());
     }
 
@@ -87,8 +94,7 @@ public class MapActivity extends AppCompatActivity {
 
         if (location != null) {
             mGpsEnable = true;
-            mMapController.moveCamera(location);
-            mMapController.requestAddressLocation(location);
+            moveCameraIfEnabled(location);
         } else {
             mGpsEnable = false;
         }
@@ -100,13 +106,20 @@ public class MapActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         EventBus.getDefault().unregister(this);
+        mMap.setOnCameraChangeListener(null);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        setupLocationByGPS();
-        setupLocaleByNetwork();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                setupLocationByGPS();
+                setupLocaleByNetwork();
+            }
+        }).run();
+
     }
 
     @Override
@@ -115,6 +128,7 @@ public class MapActivity extends AppCompatActivity {
         cleanListeners();
     }
 
+
     private void cleanListeners() {
         mLocationManager.removeUpdates(mMapController.getLocationListener());
     }
@@ -122,9 +136,10 @@ public class MapActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (mMapController.getPosition() != null) {
-            outState.putDouble(MapController.LATITUDE, mMapController.getPosition().getPosition().latitude);
-            outState.putDouble(MapController.LONGITUDE, mMapController.getPosition().getPosition().longitude);
+        if (mMapController.getLastPosition() != null) {
+            Timber.d("onSaveInstanceState " + mMapController.getLastPosition().toString());
+            outState.putDouble(MapController.LATITUDE, mMapController.getLastPosition().latitude);
+            outState.putDouble(MapController.LONGITUDE, mMapController.getLastPosition().longitude);
             outState.putString("CITY", mCity);
             outState.putString("STREET", mStreet);
         }
@@ -187,7 +202,7 @@ public class MapActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        setUpMapIfNeeded();
+
     }
 
     private void setAddressTitle(String city) {

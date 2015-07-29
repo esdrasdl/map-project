@@ -39,27 +39,39 @@ public class MapController {
     private boolean isMoveCameraAllow = true;
     private LocationListener mLocationListener;
     private MarkerOptions mOriginalMarker;
+    private LatLng mLastLatLng;
     private long lastUpdateTime = 0;
     private final long interval = 2 * 1000;
 
 
-    public MapController(Context context, GoogleMap map) {
-        mContext = context;
-        mMap = map;
-        mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
+    public GoogleMap.OnCameraChangeListener setCameraChangeListener() {
+        return new GoogleMap.OnCameraChangeListener() {
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
                 isMoveCameraAllow = false;
-                final LatLng target = cameraPosition.target;
-                Log.d(LOG_TAG, target.toString());
+                mLastLatLng = cameraPosition.target;
+                Log.d(LOG_TAG, mLastLatLng.toString());
                 long now = new Date().getTime();
                 if (now - lastUpdateTime > interval) {
-                    requestAddressLocation(target);
+                    requestAddressLocation(mLastLatLng);
                     lastUpdateTime = new Date().getTime();
                 }
 
             }
-        });
+        };
+    }
+
+    public void setIsMoveCameraAllow(boolean isMoveCameraAllow) {
+        this.isMoveCameraAllow = isMoveCameraAllow;
+    }
+
+    public boolean isMoveCameraAllow() {
+        return isMoveCameraAllow;
+    }
+
+    public MapController(Context context, GoogleMap map) {
+        mContext = context;
+        mMap = map;
         mLocationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
 
@@ -130,7 +142,6 @@ public class MapController {
                         location.getLongitude()));
         moveCamera(center);
 
-
     }
 
     public void putMarkerAtCenter() {
@@ -170,7 +181,11 @@ public class MapController {
         }
     }
 
-    public MarkerOptions getPosition() {
+    public LatLng getLastPosition() {
+        return mLastLatLng;
+    }
+
+    public MarkerOptions getCurrentPosition() {
         return mOriginalMarker;
     }
 }

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Map</string>
+    <string name="title_activity_map">Map</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="current_address">Seu endereço atual:</string>
+    <string name="current_address_city">Seu endereço atual: #</string>
+    <string name="abc_search_hint">Pesquisar…</string>
+    <string name="address_not_found">Endereço não localizado</string>
+    <string name="google_maps_key">AIzaSyDfp3FiE-RZGzmiPV1JddTzMR_toUvEnZA</string>
+</resources>

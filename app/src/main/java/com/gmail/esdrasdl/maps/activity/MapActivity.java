@@ -8,7 +8,6 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -73,11 +72,9 @@ public class MapActivity extends AppCompatActivity {
 
 
     private void setupLocaleByNetwork() {
-        Log.d(LOG_TAG, "setupLocaleByNetwork");
         Location location = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
         if (location != null) {
-            Log.d(LOG_TAG, "setupLocaleByNetwork OK");
             mMapController.moveCamera(location);
             mMapController.requestAddressLocation(location);
         }
@@ -86,12 +83,10 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void setupLocationByGPS() {
-        Log.d(LOG_TAG, "setupLocationByGPS");
         Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
         if (location != null) {
             mGpsEnable = true;
-            Log.d(LOG_TAG, "setupLocationByGPS OK");
             mMapController.moveCamera(location);
             mMapController.requestAddressLocation(location);
         } else {
@@ -213,14 +208,12 @@ public class MapActivity extends AppCompatActivity {
     }
 
     public void onEventMainThread(MapEvent event) {
-        Log.d(LOG_TAG, "onEventMainThread " + event.toString());
         setAddressTextView(event.getAddress());
     }
 
     public void onEventMainThread(GPStatusEvent event) {
         if (event.getStatus() && !mGpsEnable) {
             mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            Log.d(LOG_TAG, "onEventMainThread " + event.toString());
             setupLocationByGPS();
         }
     }
@@ -236,6 +229,6 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void setUpMap() {
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)));
     }
 }

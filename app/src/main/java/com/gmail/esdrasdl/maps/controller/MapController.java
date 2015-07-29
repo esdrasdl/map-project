@@ -111,9 +111,6 @@ public class MapController {
     }
 
     public void moveCamera(double latitude, double longitude) {
-
-
-        Log.d(LOG_TAG, "A " + latitude + ", " + longitude);
         CameraUpdate center =
                 CameraUpdateFactory.newLatLng(new LatLng(latitude,
                         longitude));
@@ -122,22 +119,15 @@ public class MapController {
     }
 
     public void moveCamera(LatLng coordenates) {
-
-
         CameraUpdate center =
                 CameraUpdateFactory.newLatLng(coordenates);
-        Log.d(LOG_TAG, "B " + coordenates.latitude + ", " + coordenates.longitude);
         moveCamera(center);
-
     }
 
     public void moveCamera(Location location) {
-
-
         CameraUpdate center =
                 CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(),
                         location.getLongitude()));
-        Log.d(LOG_TAG, "C " + location.getLatitude() + ", " + location.getLongitude());
         moveCamera(center);
 
 

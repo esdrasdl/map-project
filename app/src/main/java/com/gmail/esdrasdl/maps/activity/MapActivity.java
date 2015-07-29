@@ -50,8 +50,7 @@ public class MapActivity extends AppCompatActivity {
 
 
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        setupLocationByGPS();
-        setupLocaleByNetwork();
+
 
         EventBus.getDefault().register(this);
     }
@@ -64,7 +63,7 @@ public class MapActivity extends AppCompatActivity {
             mStreet = savedInstanceState.getString("STREET", "");
             mAddressTextView.setText(mStreet);
             setAddressTitle(mCity);
-            mMapController.addMarker(lat, lon);
+            mMapController.moveCamera(lat, lon);
         }
     }
 
@@ -79,11 +78,11 @@ public class MapActivity extends AppCompatActivity {
 
         if (location != null) {
             Log.d(LOG_TAG, "setupLocaleByNetwork OK");
-            mMapController.addMarker(location);
+            mMapController.moveCamera(location);
             mMapController.requestAddressLocation(location);
         }
 
-        mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 10, mMapController.setupLocationListener());
+        mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 10, mMapController.getLocationListener());
     }
 
     private void setupLocationByGPS() {
@@ -93,13 +92,13 @@ public class MapActivity extends AppCompatActivity {
         if (location != null) {
             mGpsEnable = true;
             Log.d(LOG_TAG, "setupLocationByGPS OK");
-            mMapController.addMarker(location);
+            mMapController.moveCamera(location);
             mMapController.requestAddressLocation(location);
         } else {
             mGpsEnable = false;
         }
 
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, mMapController.setupLocationListener());
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, mMapController.getLocationListener());
     }
 
     @Override
@@ -109,11 +108,28 @@ public class MapActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        setupLocationByGPS();
+        setupLocaleByNetwork();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        cleanListeners();
+    }
+
+    private void cleanListeners() {
+        mLocationManager.removeUpdates(mMapController.getLocationListener());
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (mMapController.getMarkerOptions() != null) {
-            outState.putDouble(MapController.LATITUDE, mMapController.getMarkerOptions().getPosition().latitude);
-            outState.putDouble(MapController.LONGITUDE, mMapController.getMarkerOptions().getPosition().longitude);
+        if (mMapController.getPosition() != null) {
+            outState.putDouble(MapController.LATITUDE, mMapController.getPosition().getPosition().latitude);
+            outState.putDouble(MapController.LONGITUDE, mMapController.getPosition().getPosition().longitude);
             outState.putString("CITY", mCity);
             outState.putString("STREET", mStreet);
         }

@@ -56,6 +56,37 @@
             android:layout_gravity="center"
             android:src="@drawable/yellow_marker"
             />
+
+        <LinearLayout
+            android:id="@+id/favorite_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/yellow_dark"
+            android:visibility="gone"
+            android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/favorite_close"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:padding="10dp"
+                android:gravity="center"
+                android:textSize="18sp"
+                android:text="@string/favorite_close"
+                android:drawableLeft="@android:drawable/ic_menu_close_clear_cancel"/>
+
+            <ListView
+                android:id="@+id/favorite_listview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="10dp"
+                android:clipToPadding="false"
+                android:paddingBottom="10dp"
+                tools:listitem="favorite_list_item"/>
+
+        </LinearLayout>
     </FrameLayout>
 
 

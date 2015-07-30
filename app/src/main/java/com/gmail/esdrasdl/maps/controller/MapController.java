@@ -2,15 +2,14 @@ package com.gmail.esdrasdl.maps.controller;
 
 import android.content.Context;
 import android.content.Intent;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.gmail.esdrasdl.maps.data.FavoriteEntity;
+import com.gmail.esdrasdl.maps.data.net.APIClient;
 import com.gmail.esdrasdl.maps.service.GPSAddressService;
-import com.gmail.esdrasdl.maps.util.MapEvent;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -18,12 +17,7 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.io.IOException;
 import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-
-import de.greenrobot.event.EventBus;
 
 
 /**
@@ -33,6 +27,8 @@ public class MapController {
     private static final String LOG_TAG = MapController.class.getSimpleName();
     public static final String LATITUDE = "LATITUDE";
     public static final String LONGITUDE = "LONGITUDE";
+    public static final String USE_LATLON = "USE_LATLON";
+    public static final String QUERY = "QUERY";
 
     private GoogleMap mMap;
     private Context mContext;
@@ -49,10 +45,9 @@ public class MapController {
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
                 isMoveCameraAllow = false;
-                mLastLatLng = cameraPosition.target;
-                Log.d(LOG_TAG, mLastLatLng.toString());
                 long now = new Date().getTime();
                 if (now - lastUpdateTime > interval) {
+                    mLastLatLng = cameraPosition.target;
                     requestAddressLocation(mLastLatLng);
                     lastUpdateTime = new Date().getTime();
                 }
@@ -98,23 +93,18 @@ public class MapController {
     }
 
     public void requestAddressLocation(Location location) {
-        try {
-            Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
-            List<Address> yourAddresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-            if (yourAddresses.size() > 0) {
-                String[] address = new String[]{yourAddresses.get(0).getAddressLine(0), yourAddresses.get(0).getAddressLine(1)};
-                EventBus.getDefault().post(new MapEvent(address));
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Intent intent = new Intent(mContext, GPSAddressService.class);
+        intent.putExtra(LATITUDE, location.getLatitude());
+        intent.putExtra(LONGITUDE, location.getLongitude());
+        intent.putExtra(USE_LATLON, true);
+        mContext.startService(intent);
     }
 
     public void requestAddressLocation(LatLng location) {
         Intent intent = new Intent(mContext, GPSAddressService.class);
         intent.putExtra(LATITUDE, location.latitude);
         intent.putExtra(LONGITUDE, location.longitude);
+        intent.putExtra(USE_LATLON, true);
         mContext.startService(intent);
     }
 
@@ -130,10 +120,12 @@ public class MapController {
 
     }
 
-    public void moveCamera(LatLng coordenates) {
+    public void moveCamera(LatLng coordinates) {
+
         CameraUpdate center =
-                CameraUpdateFactory.newLatLng(coordenates);
+                CameraUpdateFactory.newLatLng(coordinates);
         moveCamera(center);
+
     }
 
     public void moveCamera(Location location) {
@@ -144,9 +136,10 @@ public class MapController {
 
     }
 
-    public void putMarkerAtCenter() {
+    public void getCurrentPosition() {
         isMoveCameraAllow = true;
         if (mOriginalMarker != null) {
+            requestAddressLocation(mOriginalMarker.getPosition());
             moveCamera(mOriginalMarker.getPosition());
         }
     }
@@ -159,34 +152,32 @@ public class MapController {
     }
 
     public void getLocationThroughAddress(String query) {
-        List<Address> addresses;
         isMoveCameraAllow = false;
-        Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
-        try {
-            addresses = geocoder.getFromLocationName(query, 1);
-
-            if (addresses.size() > 0) {
-                double latitude = addresses.get(0).getLatitude();
-                double longitude = addresses.get(0).getLongitude();
-                String[] address = new String[]{addresses.get(0).getAddressLine(0), addresses.get(0).getAddressLine(1)};
-                EventBus.getDefault().post(new MapEvent(address));
-                LatLng latLng = new LatLng(latitude,
-                        longitude);
-
-                moveCamera(latLng);
-
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Intent intent = new Intent(mContext, GPSAddressService.class);
+        intent.putExtra(QUERY, query);
+        intent.putExtra(USE_LATLON, false);
+        mContext.startService(intent);
     }
 
     public LatLng getLastPosition() {
         return mLastLatLng;
     }
 
-    public MarkerOptions getCurrentPosition() {
-        return mOriginalMarker;
+
+    public void getFavoriteList() {
+        APIClient client = new APIClient(mContext);
+        client.getFavoriteList("M9e1vpTd");
+    }
+
+
+    public FavoriteEntity buildFavoriteLocation(String address) {
+        FavoriteEntity favoriteEntity = new FavoriteEntity();
+        favoriteEntity.setName(address);
+        if (mLastLatLng != null) {
+            favoriteEntity.setLatitude(mLastLatLng.latitude);
+            favoriteEntity.setLongitude(mLastLatLng.longitude);
+        }
+        return favoriteEntity;
     }
 }
 

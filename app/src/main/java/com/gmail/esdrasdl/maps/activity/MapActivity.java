@@ -8,20 +8,29 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.gmail.esdrasdl.maps.R;
+import com.gmail.esdrasdl.maps.adapter.FavoriteArrayAdapter;
 import com.gmail.esdrasdl.maps.controller.MapController;
+import com.gmail.esdrasdl.maps.data.FavoriteEntity;
+import com.gmail.esdrasdl.maps.util.FavoriteRequestEvent;
 import com.gmail.esdrasdl.maps.util.GPStatusEvent;
 import com.gmail.esdrasdl.maps.util.MapEvent;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.util.List;
 
 import de.greenrobot.event.EventBus;
 import timber.log.Timber;
@@ -38,6 +47,11 @@ public class MapActivity extends AppCompatActivity {
     private TextView mTitleAddress;
     private String mStreet;
     private String mCity;
+    private LinearLayout mFavoriteLayout;
+    private ListView mFavoriteListView;
+    private FavoriteArrayAdapter mAdapter;
+    private TextView mCloseFavoriteLayout;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,13 +59,28 @@ public class MapActivity extends AppCompatActivity {
         setContentView(R.layout.activity_map);
         setupActionBar();
         setupViews();
+        setupListeners();
         setupControllers();
+        setupFavorites();
         recoveryLastState(savedInstanceState);
+
         mMap.setOnCameraChangeListener(mMapController.setCameraChangeListener());
-
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
         EventBus.getDefault().register(this);
+    }
+
+    private void setupListeners() {
+        mCloseFavoriteLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mFavoriteLayout.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    private void setupFavorites() {
+        mMapController.getFavoriteList();
+
     }
 
     private void recoveryLastState(Bundle savedInstanceState) {
@@ -60,10 +89,17 @@ public class MapActivity extends AppCompatActivity {
             double lat = savedInstanceState.getDouble(MapController.LATITUDE);
             double lon = savedInstanceState.getDouble(MapController.LONGITUDE);
             Timber.d("recoveryLastState onSaveInstanceState " + lat + "," + lon);
-            mCity = savedInstanceState.getString("CITY", "");
-            mStreet = savedInstanceState.getString("STREET", "");
-            mAddressTextView.setText(mStreet);
-            setAddressTitle(mCity);
+            mCity = savedInstanceState.getString("CITY");
+            mStreet = savedInstanceState.getString("STREET");
+
+            if (!TextUtils.isEmpty(mStreet)) {
+                mAddressTextView.setText(mStreet);
+            }
+
+            if (!TextUtils.isEmpty(mCity)) {
+                setAddressTitle(mCity);
+            }
+
             mMapController.moveCamera(lat, lon);
         }
     }
@@ -149,6 +185,9 @@ public class MapActivity extends AppCompatActivity {
         setUpMapIfNeeded();
         mAddressTextView = (TextView) findViewById(R.id.current_address_textview);
         mTitleAddress = (TextView) findViewById(R.id.address_title);
+        mFavoriteLayout = (LinearLayout) findViewById(R.id.favorite_layout);
+        mFavoriteListView = (ListView) findViewById(R.id.favorite_listview);
+        mCloseFavoriteLayout = (TextView) findViewById(R.id.favorite_close);
     }
 
     @Override
@@ -167,13 +206,25 @@ public class MapActivity extends AppCompatActivity {
         switch (item.getItemId()) {
 
             case R.id.action_add_to_favorites:
+                addToFavorite();
+                showFavoriteList();
                 return true;
             case R.id.action_center:
-                mMapController.putMarkerAtCenter();
+                mMapController.getCurrentPosition();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    private void addToFavorite() {
+
+        mAdapter.add(mMapController.buildFavoriteLocation(mAddressTextView.getText().toString()));
+
+    }
+
+    private void showFavoriteList() {
+        mFavoriteLayout.setVisibility(View.VISIBLE);
     }
 
     private void setupSearchView() {
@@ -199,12 +250,6 @@ public class MapActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-    }
-
     private void setAddressTitle(String city) {
         mTitleAddress.setText(getString(R.string.current_address_city).replace("#", city));
     }
@@ -224,6 +269,22 @@ public class MapActivity extends AppCompatActivity {
 
     public void onEventMainThread(MapEvent event) {
         setAddressTextView(event.getAddress());
+        mMapController.moveCamera(event.getLatLng());
+    }
+
+    public void onEventMainThread(FavoriteRequestEvent event) {
+        if (event != null && event.getFavoriteList() != null) {
+            if (mAdapter == null) {
+                setupAdapter(event.getFavoriteList());
+            } else {
+                mAdapter.setList(event.getFavoriteList());
+            }
+        }
+    }
+
+    private void setupAdapter(List<FavoriteEntity> entities) {
+        mAdapter = new FavoriteArrayAdapter(this, entities);
+        mFavoriteListView.setAdapter(mAdapter);
     }
 
     public void onEventMainThread(GPStatusEvent event) {

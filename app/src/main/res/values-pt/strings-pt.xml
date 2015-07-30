@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Map</string>
+    <string name="title_activity_map">Map</string>
+    <string name="current_address">Seu Endereço atual:</string>
+    <string name="current_address_city">Seu Endereço atual: #</string>
+    <string name="abc_search_hint">Pesquisar…</string>
+    <string name="address_not_found">Endereço não encontrado</string>
+    <string name="fav_name_label">Nome:</string>
+    <string name="fav_lat_label">Lat:</string>
+    <string name="fav_lon_label">Lon:</string>
+    <string name="no_connection_message">Por favor, verifique sua conexão</string>
+    <string name="favorite_close">Fechar</string>
+</resources>

@@ -8,7 +8,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.gmail.esdrasdl.maps.R;
@@ -64,13 +63,13 @@ public class FavoriteArrayAdapter extends ArrayAdapter<FavoriteEntity> {
         TextView name;
         TextView latitude;
         TextView longitude;
-        ImageButton closeButton;
+        TextView closeButton;
 
         public FavoriteViewHolder(View view) {
             name = (TextView) view.findViewById(R.id.fav_name);
             latitude = (TextView) view.findViewById(R.id.fav_lat);
             longitude = (TextView) view.findViewById(R.id.fav_lon);
-            closeButton = (ImageButton) view.findViewById(R.id.fav_delete);
+            closeButton = (TextView) view.findViewById(R.id.fav_delete);
         }
 
         public void apply(FavoriteEntity entity, final int position) {

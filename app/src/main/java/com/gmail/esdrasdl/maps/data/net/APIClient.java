@@ -7,19 +7,13 @@ import android.widget.Toast;
 
 import com.gmail.esdrasdl.maps.BuildConfig;
 import com.gmail.esdrasdl.maps.R;
-import com.gmail.esdrasdl.maps.data.FavoriteEntity;
-import com.gmail.esdrasdl.maps.util.FavoriteRequestEvent;
 import com.squareup.okhttp.OkHttpClient;
 
 import java.util.concurrent.TimeUnit;
 
-import de.greenrobot.event.EventBus;
 import retrofit.Callback;
 import retrofit.RestAdapter;
-import retrofit.RetrofitError;
 import retrofit.client.OkClient;
-import retrofit.client.Response;
-import timber.log.Timber;
 
 /**
  * Created by esdras on 29/07/15.
@@ -52,22 +46,9 @@ public class APIClient {
         return okHttpClient;
     }
 
-    public void getFavoriteList(String param) {
+    public void getFavoriteList(String param, Callback<FavoritesEntity> callback) {
         if (isInternetConnectionAvailable()) {
-            mAPI.getFavoriteList(param, new Callback<FavoritesEntity>() {
-                @Override
-                public void success(FavoritesEntity favoriteEntities, Response response) {
-                    for (FavoriteEntity entity : favoriteEntities.getFavorites()) {
-                        Timber.d(entity.toString());
-                    }
-                    EventBus.getDefault().post(new FavoriteRequestEvent(favoriteEntities.getFavorites()));
-                }
-
-                @Override
-                public void failure(RetrofitError error) {
-                    Timber.d(error.toString());
-                }
-            });
+            mAPI.getFavoriteList(param, callback);
         } else {
             try {
                 Toast.makeText(mContext, mContext.getText(R.string.no_connection_message), Toast.LENGTH_LONG).show();

@@ -9,7 +9,9 @@ import android.util.Log;
 
 import com.gmail.esdrasdl.maps.data.FavoriteEntity;
 import com.gmail.esdrasdl.maps.data.net.APIClient;
+import com.gmail.esdrasdl.maps.data.net.FavoritesEntity;
 import com.gmail.esdrasdl.maps.service.GPSAddressService;
+import com.gmail.esdrasdl.maps.util.FavoriteRequestEvent;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -18,6 +20,12 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.Date;
+
+import de.greenrobot.event.EventBus;
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
+import timber.log.Timber;
 
 
 /**
@@ -37,7 +45,7 @@ public class MapController {
     private MarkerOptions mOriginalMarker;
     private LatLng mLastLatLng;
     private long lastUpdateTime = 0;
-    private final long interval = 2 * 1000;
+    private final long interval = 3 * 1000;
 
 
     public GoogleMap.OnCameraChangeListener setCameraChangeListener() {
@@ -145,9 +153,11 @@ public class MapController {
     }
 
     private void moveCamera(CameraUpdate center) {
-        CameraUpdate zoom = CameraUpdateFactory.zoomTo(17);
         mMap.moveCamera(center);
-        mMap.animateCamera(zoom);
+        if (mMap.getCameraPosition().zoom < 3) {
+            CameraUpdate zoom = CameraUpdateFactory.zoomTo(17);
+            mMap.animateCamera(zoom);
+        }
         Log.d(LOG_TAG, mMap.getCameraPosition().toString());
     }
 
@@ -166,7 +176,22 @@ public class MapController {
 
     public void getFavoriteList() {
         APIClient client = new APIClient(mContext);
-        client.getFavoriteList("M9e1vpTd");
+        client.getFavoriteList("M9e1vpTd", new Callback<FavoritesEntity>() {
+            @Override
+            public void success(FavoritesEntity favoriteEntities, Response response) {
+                LatLng latLng;
+                for (FavoriteEntity entity : favoriteEntities.getFavorites()) {
+                    latLng = new LatLng(entity.getLatitude(), entity.getLongitude());
+                    mMap.addMarker(new MarkerOptions().position(latLng).title(entity.getName()));
+                }
+                EventBus.getDefault().post(new FavoriteRequestEvent(favoriteEntities.getFavorites()));
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                Timber.d(error.toString());
+            }
+        });
     }
 
 
@@ -177,7 +202,12 @@ public class MapController {
             favoriteEntity.setLatitude(mLastLatLng.latitude);
             favoriteEntity.setLongitude(mLastLatLng.longitude);
         }
+        addMarker(address);
         return favoriteEntity;
+    }
+
+    public void addMarker(String name) {
+        mMap.addMarker(new MarkerOptions().position(mLastLatLng).title(name));
     }
 }
 

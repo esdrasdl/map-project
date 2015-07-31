@@ -1,23 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto">
-      <item
-          android:id="@+id/action_search"
-          android:icon="@drawable/abc_ic_search_api_mtrl_alpha"
-          android:title="Pesquisar"
-          app:actionViewClass="android.support.v7.widget.SearchView"
-          app:showAsAction="always|collapseActionView"/>
-      <item
-          android:id="@+id/action_add_to_favorites"
-          android:icon="@drawable/abc_btn_rating_star_on_mtrl_alpha"
-          android:title="Adicionar aos Favoritos"
-          app:showAsAction="always|collapseActionView"/>
+    <item
+        android:id="@+id/action_search"
+        android:icon="@drawable/abc_ic_search_api_mtrl_alpha"
+        android:title="Pesquisar"
+        app:actionViewClass="android.support.v7.widget.SearchView"
+        app:showAsAction="always|collapseActionView"/>
 
-      <item
-          android:id="@+id/action_center"
-          android:icon="@drawable/ic_location_searching_white_36dp"
-          android:title="Centralizar"
-          app:showAsAction="always|collapseActionView"/>
+    <item
+        android:id="@+id/action_center"
+        android:icon="@drawable/ic_location_searching_white_36dp"
+        android:title="Centralizar"
+        app:showAsAction="always|collapseActionView"/>
 
 
 </menu>

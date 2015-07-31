@@ -10,4 +10,11 @@
     <string name="fav_lon_label">Lon:</string>
     <string name="no_connection_message">Por favor, verifique sua conexão</string>
     <string name="favorite_close">Fechar</string>
+    <string name="fav_remove">Remover</string>
+    <string name="favorite_name_labelt">Novo lugar</string>
+    <string name="save">ADICIONAR</string>
+    <string name="wellcome">Bem-vindo ao Map</string>
+    <string name="menu_disconnect">Sair</string>
+    <string name="menu_favorite">Seus lugares</string>
+    <string name="fav_hint">Nome</string>
 </resources>

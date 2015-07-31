@@ -4,20 +4,28 @@ import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.gmail.esdrasdl.maps.R;
 import com.gmail.esdrasdl.maps.adapter.FavoriteArrayAdapter;
 import com.gmail.esdrasdl.maps.controller.MapController;
@@ -28,8 +36,8 @@ import com.gmail.esdrasdl.maps.util.MapEvent;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
@@ -51,6 +59,12 @@ public class MapActivity extends AppCompatActivity {
     private ListView mFavoriteListView;
     private FavoriteArrayAdapter mAdapter;
     private TextView mCloseFavoriteLayout;
+    private Toast mToast;
+    private DrawerLayout mDrawerLayout;
+    private NavigationView navigationView;
+    private ActionBarDrawerToggle mDrawerToggle;
+    private Toolbar mToolbar;
+    private FloatingActionButton mFavoriteFAB;
 
 
     @Override
@@ -66,6 +80,9 @@ public class MapActivity extends AppCompatActivity {
 
         mMap.setOnCameraChangeListener(mMapController.setCameraChangeListener());
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        setupAdapter(new ArrayList<FavoriteEntity>(0));
+        setupDrawerMenu();
+
         EventBus.getDefault().register(this);
     }
 
@@ -74,6 +91,23 @@ public class MapActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 mFavoriteLayout.setVisibility(View.GONE);
+            }
+        });
+
+        mFavoriteFAB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addToFavorite();
+            }
+        });
+
+        mFavoriteListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                FavoriteEntity item = mAdapter.getItem(position);
+                mMapController.setIsMoveCameraAllow(false);
+                mMapController.moveCamera(new LatLng(item.getLatitude(), item.getLongitude()));
+                mCloseFavoriteLayout.performClick();
             }
         });
     }
@@ -188,6 +222,8 @@ public class MapActivity extends AppCompatActivity {
         mFavoriteLayout = (LinearLayout) findViewById(R.id.favorite_layout);
         mFavoriteListView = (ListView) findViewById(R.id.favorite_listview);
         mCloseFavoriteLayout = (TextView) findViewById(R.id.favorite_close);
+        navigationView = (NavigationView) findViewById(R.id.navigation_view);
+        mFavoriteFAB = (FloatingActionButton) findViewById(R.id.fav_fab);
     }
 
     @Override
@@ -197,6 +233,7 @@ public class MapActivity extends AppCompatActivity {
         MenuItem item = menu.findItem(R.id.action_search);
         mSearchView = (SearchView) MenuItemCompat.getActionView(item);
         setupSearchView();
+
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -204,11 +241,6 @@ public class MapActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
 
         switch (item.getItemId()) {
-
-            case R.id.action_add_to_favorites:
-                addToFavorite();
-                showFavoriteList();
-                return true;
             case R.id.action_center:
                 mMapController.getCurrentPosition();
                 return true;
@@ -218,8 +250,7 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void addToFavorite() {
-
-        mAdapter.add(mMapController.buildFavoriteLocation(mAddressTextView.getText().toString()));
+        showInputDialog();
 
     }
 
@@ -246,8 +277,8 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void setupActionBar() {
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        mToolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(mToolbar);
     }
 
     private void setAddressTitle(String city) {
@@ -256,7 +287,11 @@ public class MapActivity extends AppCompatActivity {
 
     private void setAddressTextView(String[] address) {
         try {
-            mStreet = address[0];
+            if (address[0].indexOf(",") > 0) {
+                mStreet = address[0].substring(0, address[0].indexOf(","));
+            } else {
+                mStreet = address[0];
+            }
             mCity = address[1];
             mAddressTextView.setText(mStreet);
             setAddressTitle(mCity);
@@ -270,6 +305,7 @@ public class MapActivity extends AppCompatActivity {
     public void onEventMainThread(MapEvent event) {
         setAddressTextView(event.getAddress());
         mMapController.moveCamera(event.getLatLng());
+
     }
 
     public void onEventMainThread(FavoriteRequestEvent event) {
@@ -279,6 +315,12 @@ public class MapActivity extends AppCompatActivity {
             } else {
                 mAdapter.setList(event.getFavoriteList());
             }
+        }
+    }
+
+    private void addToList(FavoriteEntity entity) {
+        if (mAdapter != null) {
+            mAdapter.add(entity);
         }
     }
 
@@ -298,13 +340,101 @@ public class MapActivity extends AppCompatActivity {
         if (mMap == null) {
             mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
                     .getMap();
-            if (mMap != null) {
-                setUpMap();
-            }
         }
     }
 
-    private void setUpMap() {
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)));
+
+    private void showInputDialog() {
+        new MaterialDialog.Builder(this)
+                .content(R.string.favorite_name_labelt)
+                .inputType(InputType.TYPE_CLASS_TEXT |
+                        InputType.TYPE_TEXT_FLAG_CAP_WORDS)
+                .positiveText(R.string.save)
+                .input(R.string.fav_hint, R.string.empty, new MaterialDialog.InputCallback() {
+                    @Override
+                    public void onInput(MaterialDialog dialog, CharSequence input) {
+                        String name;
+
+                        if (!TextUtils.isEmpty(input.toString())) {
+                            name = input.toString();
+                        } else {
+                            name = getAddress();
+                        }
+                        showToast(name + " added to your list");
+                        addToList(mMapController.buildFavoriteLocation(name));
+                    }
+                }).show();
+    }
+
+    private String getAddress() {
+        return mAddressTextView.getText().toString();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mFavoriteLayout.getVisibility() == View.VISIBLE) {
+            mFavoriteLayout.setVisibility(View.GONE);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    private void showToast(String message) {
+        if (mToast != null) {
+            mToast.cancel();
+            mToast = null;
+        }
+        mToast = Toast.makeText(this, message, Toast.LENGTH_SHORT);
+        mToast.show();
+    }
+
+    private void setupDrawerMenu() {
+
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(MenuItem menuItem) {
+
+                mDrawerLayout.closeDrawers();
+
+                if (menuItem.getGroupId() == R.id.menu_group) {
+                    navigationView.getMenu().setGroupCheckable(R.id.menu_group, false, true);
+                    navigationView.getMenu().setGroupCheckable(R.id.menu_group_2, true, true);
+                } else {
+
+                    navigationView.getMenu().setGroupCheckable(R.id.menu_group, true, true);
+                    navigationView.getMenu().setGroupCheckable(R.id.menu_group_2, false, true);
+                }
+                menuItem.setChecked(true);
+
+                switch (menuItem.getItemId()) {
+                    case R.id.menu_your_places:
+                        showFavoriteList();
+                        return true;
+                    case R.id.menu_disconnect:
+                        finish();
+                        return true;
+                    default:
+
+                        return true;
+                }
+            }
+
+        });
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, mToolbar, R.string.app_name, R.string.app_name) {
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                super.onDrawerClosed(drawerView);
+            }
+
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+            }
+        };
+
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+        mDrawerToggle.syncState();
     }
 }
